@@ -28,13 +28,6 @@ Diseñar una base de datos que permita:
 - Publicación automática en redes/YouTube.
 - Facturación electrónica.
 
-## Entidades preliminares
-|  Entidad   |
-|------------|
-| Cliente    |
-| Sala       |
-| Inventario |
-
 ## Requerimientos funcionales (borrador)
 - Registrar salas con su capacidad y equipamiento.
 - Registrar instrumentos/equipos con estado (disponible, en uso, en mantenimiento).
