@@ -14,254 +14,216 @@ SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,N
 CREATE SCHEMA IF NOT EXISTS `salas_de_ensayo_db` DEFAULT CHARACTER SET utf8 ;
 USE `salas_de_ensayo_db` ;
 
--- -----------------------------------------------------
--- Table `salas_de_ensayo_db`.`permiso`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`permiso` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `denominacion` VARCHAR(45) NOT NULL DEFAULT 'lectura',
-  `descripcion` VARCHAR(100) NULL,
-  PRIMARY KEY (`id`))
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `salas_de_ensayo_db`.`rol`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`rol` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `tipo` VARCHAR(45) NOT NULL DEFAULT 'Recepcionista',
-  PRIMARY KEY (`id`),
-  UNIQUE INDEX `tipo_UNIQUE` (`tipo` ASC))
-ENGINE = InnoDB;
-
 
 -- -----------------------------------------------------
 -- Table `salas_de_ensayo_db`.`persona`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`persona` (
+CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`persona`(
   `dni` VARCHAR(10) NOT NULL,
   `correo` VARCHAR(45) NOT NULL,
   `nombre` VARCHAR(45) NOT NULL,
   `telefono` VARCHAR(45) NOT NULL,
   PRIMARY KEY (`dni`),
-  UNIQUE INDEX `correo_UNIQUE` (`correo` ASC))
-ENGINE = InnoDB;
+  UNIQUE INDEX `correo_UNIQUE` (`correo` ASC)
+) ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
 -- Table `salas_de_ensayo_db`.`sala`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`sala` (
-  `nro` INT NOT NULL AUTO_INCREMENT,
+CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`sala`(
+  `nro` BIGINT NOT NULL AUTO_INCREMENT,
   `nombre` VARCHAR(45) NOT NULL,
   `capacidad` INT NOT NULL,
   `habilitada` TINYINT NOT NULL DEFAULT 1,
-  `precio_x_hora` DECIMAL NOT NULL,
+  `precio_x_hora` DECIMAL(10,2) NOT NULL,
+
   PRIMARY KEY (`nro`),
-  UNIQUE INDEX `nombre_UNIQUE` (`nombre` ASC))
-ENGINE = InnoDB;
+  UNIQUE INDEX `nombre_UNIQUE` (`nombre` ASC),
+
+  CONSTRAINT `chk_sala_capacidad` CHECK (`capacidad` > 0),
+  CONSTRAINT `chk_sala_precio` CHECK (`precio_x_hora` >= 0),
+  CONSTRAINT `chk_sala_habilitada` CHECK (`habilitada` IN (0, 1))
+) ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
 -- Table `salas_de_ensayo_db`.`reserva`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`reserva` (
-  `nro` INT NOT NULL AUTO_INCREMENT,
+CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`reserva`(
+  `nro` BIGINT NOT NULL AUTO_INCREMENT,
   `fecha` DATE NOT NULL,
   `hora_inicio` TIME NOT NULL,
   `hora_fin` TIME NOT NULL,
-  `estado` VARCHAR(25) NOT NULL DEFAULT 'Confirmada',
-  `sala_precio_x_hora` DECIMAL NOT NULL,
+  `confirmada` TINYINT NOT NULL DEFAULT 1,
+  `sala_precio_x_hora` DECIMAL(10,2) NOT NULL,
   `dni_persona` VARCHAR(10) NOT NULL,
-  `nro_sala` INT NOT NULL,
+  `nro_sala` BIGINT NOT NULL,
+
   PRIMARY KEY (`nro`),
   INDEX `fk_reserva_persona1_idx` (`dni_persona` ASC),
   INDEX `fk_reserva_sala1_idx` (`nro_sala` ASC),
-  CONSTRAINT `fk_dni_persona`
-    FOREIGN KEY (`dni_persona`)
+
+  CONSTRAINT `chk_reserva_horarios` CHECK (`hora_fin` > `hora_inicio`),
+  CONSTRAINT `chk_reserva_confirmacion` CHECK (`confirmada` IN (0, 1)),
+
+  CONSTRAINT `fk_dni_persona` FOREIGN KEY (`dni_persona`)
     REFERENCES `salas_de_ensayo_db`.`persona` (`dni`)
-    ON DELETE NO ACTION
-    ON UPDATE CASCADE,
-  CONSTRAINT `fk_nro_sala`
-    FOREIGN KEY (`nro_sala`)
+    ON DELETE NO ACTION ON UPDATE CASCADE,
+
+  CONSTRAINT `fk_nro_sala` FOREIGN KEY (`nro_sala`)
     REFERENCES `salas_de_ensayo_db`.`sala` (`nro`)
-    ON DELETE NO ACTION
-    ON UPDATE CASCADE)
-ENGINE = InnoDB;
+    ON DELETE NO ACTION ON UPDATE CASCADE
+) ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
 -- Table `salas_de_ensayo_db`.`categoria`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`categoria` (
-  `id` INT NOT NULL AUTO_INCREMENT,
+CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`categoria`(
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
   `descripcion` VARCHAR(100) NOT NULL,
-  `id_categoria_padre` INT NULL,
+  `id_categoria_padre` BIGINT NULL,
+
   PRIMARY KEY (`id`),
   INDEX `fk_categoria_categoria1_idx` (`id_categoria_padre` ASC),
-  CONSTRAINT `fk_categoria_categoria1`
-    FOREIGN KEY (`id_categoria_padre`)
+
+  CONSTRAINT `fk_categoria_categoria1` FOREIGN KEY (`id_categoria_padre`)
     REFERENCES `salas_de_ensayo_db`.`categoria` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+    ON DELETE NO ACTION ON UPDATE CASCADE
+) ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
 -- Table `salas_de_ensayo_db`.`fabricante`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`fabricante` (
-  `id` INT NOT NULL AUTO_INCREMENT,
+CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`fabricante`(
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
   `nombre` VARCHAR(45) NOT NULL,
-  PRIMARY KEY (`id`))
-ENGINE = InnoDB;
+  PRIMARY KEY (`id`)
+) ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
 -- Table `salas_de_ensayo_db`.`item_inventario`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`item_inventario` (
+CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`item_inventario`(
   `id` VARCHAR(10) NOT NULL,
   `stock` INT NOT NULL,
   `descripcion` VARCHAR(100) NOT NULL,
-  `costo_alquiler` DECIMAL NOT NULL,
-  `id_categoria` INT NOT NULL,
-  `id_fabricante` INT NOT NULL,
+  `costo_alquiler` DECIMAL(10,2) NOT NULL,
+  `id_categoria` BIGINT NOT NULL,
+  `id_fabricante` BIGINT NOT NULL,
+
   PRIMARY KEY (`id`),
   INDEX `fk_item_inventario_categoria1_idx` (`id_categoria` ASC),
   INDEX `fk_item_inventario_fabricante1_idx` (`id_fabricante` ASC),
-  CONSTRAINT `fk_id_categoria`
-    FOREIGN KEY (`id_categoria`)
+  
+  CONSTRAINT `chk_inventario_stock` CHECK (`stock` >= 0),
+  CONSTRAINT `chk_inventario_costo` CHECK (`costo_alquiler` >= 0),
+
+  CONSTRAINT `fk_id_categoria` FOREIGN KEY (`id_categoria`)
     REFERENCES `salas_de_ensayo_db`.`categoria` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE CASCADE,
-  CONSTRAINT `fk_id_fabricante`
-    FOREIGN KEY (`id_fabricante`)
+    ON DELETE NO ACTION ON UPDATE CASCADE,
+
+  CONSTRAINT `fk_id_fabricante` FOREIGN KEY (`id_fabricante`)
     REFERENCES `salas_de_ensayo_db`.`fabricante` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE CASCADE)
-ENGINE = InnoDB;
+    ON DELETE NO ACTION ON UPDATE CASCADE
+) ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
 -- Table `salas_de_ensayo_db`.`empleado`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`empleado` (
+CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`empleado`(
   `dni_persona` VARCHAR(10) NOT NULL,
   `legajo` INT NOT NULL AUTO_INCREMENT,
   `contraseña` VARCHAR(45) NOT NULL DEFAULT 'ar-09/',
-  `id_rol` INT NOT NULL,
+
   UNIQUE INDEX `legajo_UNIQUE` (`legajo` ASC),
   PRIMARY KEY (`dni_persona`),
-  INDEX `fk_empleado_rol1_idx` (`id_rol` ASC),
   INDEX `fk_empleado_persona1_idx` (`dni_persona` ASC),
   UNIQUE INDEX `dni_persona_UNIQUE` (`dni_persona` ASC),
-  CONSTRAINT `fk_id_empleado_rol`
-    FOREIGN KEY (`id_rol`)
-    REFERENCES `salas_de_ensayo_db`.`rol` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE CASCADE,
-  CONSTRAINT `fk_dni_persona_empleado`
-    FOREIGN KEY (`dni_persona`)
+
+  CONSTRAINT `fk_dni_persona_empleado` FOREIGN KEY (`dni_persona`)
     REFERENCES `salas_de_ensayo_db`.`persona` (`dni`)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE)
-ENGINE = InnoDB;
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
 -- Table `salas_de_ensayo_db`.`pago`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`pago` (
-  `id` INT NOT NULL AUTO_INCREMENT,
+CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`pago`(
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
   `fecha` DATE NOT NULL DEFAULT (CURRENT_DATE()),
-  `monto` DECIMAL NOT NULL,
+  `monto` DECIMAL(10,2) NOT NULL,
   `medio_de_pago` VARCHAR(45) NOT NULL DEFAULT 'Efectivo',
-  `nro_reserva` INT NOT NULL,
+  `nro_reserva` BIGINT NOT NULL,
+
   PRIMARY KEY (`id`),
   INDEX `fk_pago_reserva1_idx` (`nro_reserva` ASC),
   UNIQUE INDEX `reserva_nro_UNIQUE` (`nro_reserva` ASC),
-  CONSTRAINT `fk_nro_reserva_pago`
-    FOREIGN KEY (`nro_reserva`)
+
+  CONSTRAINT `chk_pago_monto` CHECK (`monto` >= 0),
+  CONSTRAINT `chk_pago_medio` CHECK (`medio_de_pago` IN
+	('Efectivo', 'Transferencia', 'Credito', 'Débito')),
+
+  CONSTRAINT `fk_nro_reserva_pago` FOREIGN KEY (`nro_reserva`)
     REFERENCES `salas_de_ensayo_db`.`reserva` (`nro`)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE)
-ENGINE = InnoDB;
+    ON DELETE NO ACTION ON UPDATE CASCADE
+) ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `salas_de_ensayo_db`.`indica`
+-- Table `salas_de_ensayo_db`.`reserva_inventario`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`indica` (
-  `nro` INT NOT NULL AUTO_INCREMENT,
-  `id_rol` INT NOT NULL,
-  `id_permiso` INT NOT NULL,
-  `fecha` DATE NULL DEFAULT (CURRENT_DATE()),
-  PRIMARY KEY (`nro`, `id_rol`, `id_permiso`),
-  INDEX `fk_rol_has_permiso_permiso1_idx` (`id_permiso` ASC),
-  INDEX `fk_rol_has_permiso_rol_idx` (`id_rol` ASC),
-  CONSTRAINT `fk_id_rol_indicado`
-    FOREIGN KEY (`id_rol`)
-    REFERENCES `salas_de_ensayo_db`.`rol` (`id`)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE,
-  CONSTRAINT `fk_id_permiso_indicado`
-    FOREIGN KEY (`id_permiso`)
-    REFERENCES `salas_de_ensayo_db`.`permiso` (`id`)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE)
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `salas_de_ensayo_db`.`aparta`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`aparta` (
-  `nro` INT NOT NULL AUTO_INCREMENT,
-  `nro_reserva` INT NOT NULL,
+CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`reserva_inventario`(
+  `nro` BIGINT NOT NULL AUTO_INCREMENT,
+  `nro_reserva` BIGINT NOT NULL,
   `id_item_inventario` VARCHAR(10) NOT NULL,
-  `precio_unit` DECIMAL NOT NULL,
+  `precio_unit` DECIMAL(10,2) NOT NULL,
   `cantidad` INT NOT NULL,
+
   PRIMARY KEY (`nro`, `nro_reserva`, `id_item_inventario`),
   INDEX `fk_reserva_has_item_inventario_item_inventario1_idx` (`id_item_inventario` ASC),
   INDEX `fk_reserva_has_item_inventario_reserva1_idx` (`nro_reserva` ASC),
-  CONSTRAINT `fk_nro_reserva`
-    FOREIGN KEY (`nro_reserva`)
+
+  CONSTRAINT `chk_aparta_cantidad` CHECK (`cantidad` > 0),
+  CONSTRAINT `chk_aparta_precio` CHECK (`precio_unit` >= 0),
+
+  CONSTRAINT `fk_nro_reserva` FOREIGN KEY (`nro_reserva`)
     REFERENCES `salas_de_ensayo_db`.`reserva` (`nro`)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE,
-  CONSTRAINT `fk_id_item_inventario`
-    FOREIGN KEY (`id_item_inventario`)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+
+  CONSTRAINT `fk_id_item_inventario` FOREIGN KEY (`id_item_inventario`)
     REFERENCES `salas_de_ensayo_db`.`item_inventario` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE CASCADE)
-ENGINE = InnoDB;
+    ON DELETE NO ACTION ON UPDATE CASCADE
+) ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
 -- Table `salas_de_ensayo_db`.`control_inventario`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`control_inventario` (
+CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`control_inventario`(
   `nro` INT NOT NULL AUTO_INCREMENT,
   `dni_empleado` VARCHAR(10) NOT NULL,
   `id_item_inventario` VARCHAR(10) NOT NULL,
   `fecha` DATE NULL DEFAULT (CURRENT_DATE()),
   `observacion` VARCHAR(100) NULL,
+
   PRIMARY KEY (`nro`, `id_item_inventario`, `dni_empleado`),
   INDEX `fk_empleado_has_item_inventario_item_inventario1_idx` (`id_item_inventario` ASC),
   INDEX `fk_empleado_idx` (`dni_empleado` ASC),
-  CONSTRAINT `fk_id_item_inventario_control`
-    FOREIGN KEY (`id_item_inventario`)
+
+  CONSTRAINT `fk_id_item_inventario_control` FOREIGN KEY (`id_item_inventario`)
     REFERENCES `salas_de_ensayo_db`.`item_inventario` (`id`)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE,
-  CONSTRAINT `fk_dni_empleado`
-    FOREIGN KEY (`dni_empleado`)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+
+  CONSTRAINT `fk_dni_empleado` FOREIGN KEY (`dni_empleado`)
     REFERENCES `salas_de_ensayo_db`.`empleado` (`dni_persona`)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE)
-ENGINE = InnoDB;
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE = InnoDB;
 
 
 SET SQL_MODE=@OLD_SQL_MODE;
