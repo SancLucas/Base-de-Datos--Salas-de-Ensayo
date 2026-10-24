@@ -77,6 +77,33 @@ CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`reserva`(
 ) ENGINE = InnoDB;
 
 
+DELIMITER //
+CREATE TRIGGER trg_verificar_solapamiento_reserva
+BEFORE INSERT ON reserva
+FOR EACH ROW
+BEGIN
+    DECLARE total_solapamientos INT;
+
+    SELECT COUNT(*)
+    INTO total_solapamientos
+    FROM reserva
+    WHERE nro_sala = NEW.nro_sala
+      AND fecha = NEW.fecha
+      AND confirmada != 0
+      AND (
+          (NEW.hora_inicio BETWEEN hora_inicio AND hora_fin) OR
+          (NEW.hora_fin BETWEEN hora_inicio AND hora_fin) OR
+          (hora_inicio BETWEEN NEW.hora_inicio AND NEW.hora_fin)
+      );
+
+    IF total_solapamientos > 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Error: La sala ya se encuentra reservada en ese horario.';
+    END IF;
+END//
+DELIMITER ;
+
+
 -- -----------------------------------------------------
 -- Table `salas_de_ensayo_db`.`categoria`
 -- -----------------------------------------------------
@@ -200,6 +227,25 @@ CREATE TABLE IF NOT EXISTS `salas_de_ensayo_db`.`reserva_inventario`(
     REFERENCES `salas_de_ensayo_db`.`item_inventario` (`id`)
     ON DELETE NO ACTION ON UPDATE CASCADE
 ) ENGINE = InnoDB;
+
+
+DELIMITER //
+CREATE TRIGGER trg_validar_stock_inventario
+BEFORE INSERT ON reserva_inventario
+FOR EACH ROW
+BEGIN
+    DECLARE stock_actual INT;
+
+    SELECT stock INTO stock_actual
+    FROM item_inventario
+    WHERE id = NEW.id_item_inventario;
+
+    IF NEW.cantidad > stock_actual THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Error: La cantidad solicitada supera el stock disponible del ítem.';
+    END IF;
+END//
+DELIMITER ;
 
 
 -- -----------------------------------------------------
