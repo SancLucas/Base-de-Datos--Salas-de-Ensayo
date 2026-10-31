@@ -11,6 +11,7 @@ SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,N
 -- -----------------------------------------------------
 -- Schema salas_de_ensayo_db
 -- -----------------------------------------------------
+DROP SCHEMA IF EXISTS `salas_de_ensayo_db`;
 CREATE SCHEMA IF NOT EXISTS `salas_de_ensayo_db` DEFAULT CHARACTER SET utf8 ;
 USE `salas_de_ensayo_db` ;
 
